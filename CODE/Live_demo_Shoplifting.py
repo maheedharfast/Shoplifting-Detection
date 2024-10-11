@@ -5,8 +5,8 @@ import threading
 import numpy as np
 from termcolor import colored
 
-from Shoplifting import Alert
-from Shoplifting.data_pip_shoplifting import Shoplifting_Live
+import Alert
+from data_pip_shoplifting import Shoplifting_Live
 import warnings
 # warnings.filterwarnings("ignore")
 # warnings.simplefilter(action='error', category=FutureWarning)
@@ -16,16 +16,15 @@ import warnings
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-from keras.models import load_model
 from tensorflow.keras.optimizers import Adam, SGD
 from datetime import date,datetime
 #from datetime import datetime
 import tensorflow as tf
-from keras.models import Input, Model
+from tensorflow.keras import  Model
 from tensorflow.keras.optimizers import SGD, Adam
-from keras.layers import Dense, Flatten, Conv3D, MaxPooling3D, Dropout, Multiply,Add,Concatenate
-from keras.layers.core import Lambda
-from keras.models import model_from_json
+from tensorflow.keras.layers import Dense, Flatten, Conv3D, MaxPooling3D, Dropout, Multiply,Add,Concatenate
+from tensorflow.keras.layers import Lambda, Input
+from tensorflow.keras import model_from_json
 
 
 # from object_detection.utils import label_map_util

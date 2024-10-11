@@ -1,6 +1,6 @@
 import warnings
 
-from Shoplifting.Shoplifting_net import ShopliftingNet
+from Shoplifting_net import ShopliftingNet
 
 warnings.filterwarnings("ignore")
 warnings.simplefilter(action='error', category=FutureWarning)
@@ -11,16 +11,14 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import cv2
 import numpy as np
-from keras.models import load_model
 #from keras.optimizers import Adam, SGD
 from datetime import date,datetime
 #from datetime import datetime
 import tensorflow as tf
-from keras.models import Input, Model
-from keras.models import model_from_json
+from tensorflow.keras import  Model
+from tensorflow.keras.layers import Lambda, Input
 #from keras.optimizers import SGD, Adam
-from keras.layers import Dense, Flatten, Conv3D, MaxPooling3D, Dropout, Multiply,Add,Concatenate
-from keras.layers.core import Lambda
+from tensorflow.keras.layers import Dense, Flatten, Conv3D, MaxPooling3D, Dropout, Multiply,Add,Concatenate
 import cv2
 import numpy as np
 import os

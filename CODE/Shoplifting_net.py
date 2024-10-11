@@ -1,30 +1,28 @@
 import warnings
+import imageio
 warnings.filterwarnings("ignore")
 warnings.simplefilter(action='error', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # Just disables the warning, doesn't take advantage of AVX/FMA to run faster
 import os
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import cv2
 import numpy as np
-from keras.models import load_model
-from keras.optimizers import Adam, SGD
-from datetime import date,datetime
+from tensorflow.keras.optimizers import Adam, SGD
+from datetime import date, datetime
 #from datetime import datetime
 from tensorflow.python.keras import backend as K
 from tensorflow.python.keras import layers
-from keras.models import load_model
 import tensorflow as tf
-from keras.models import Input, Model
-from keras.models import model_from_json
+from tensorflow.keras import  Model
+
 #from keras.optimizers import SGD, Adam
-from keras.layers import Dense, Flatten, Conv3D, MaxPooling3D, Dropout, Multiply,Add,Concatenate
-from keras.layers.core import Lambda
-from keras.optimizers import SGD, Adam
+from tensorflow.keras.layers import Dense, Flatten, Conv3D, MaxPooling3D, Dropout, Multiply, Add, Concatenate
+from tensorflow.keras.layers import Lambda, Input
 import cv2
 import numpy as np
-import os
 #from moviepy.editor import *
 
 import warnings
@@ -33,10 +31,11 @@ from termcolor import colored
 
 warnings.filterwarnings("ignore")
 
+
 class ShopliftingNet:
 
-    def __init__(self,weights_path):
-        self.weights_path =weights_path
+    def __init__(self, weights_path):
+        self.weights_path = weights_path
 
     def get_rgb(self, input_x):
         rgb = input_x[..., :3]
@@ -51,16 +50,13 @@ class ShopliftingNet:
     def data_layer(self, input, stride):
         return tf.gather(input, tf.range(0, 64, stride), axis=1)
 
-
     def sample(self, input, stride):
         return tf.gather(input, tf.range(0, input.shape[1], stride), axis=1)
-
 
     def temporalPooling(self, fast_opt, fast_rgb):
         fast_temoral_poll = Multiply()([fast_rgb, fast_opt])
         fast_temoral_poll = MaxPooling3D(pool_size=(8, 1, 1))(fast_temoral_poll)
         return fast_temoral_poll
-
 
     def merging_block(self, x):
         x = Conv3D(
@@ -93,7 +89,6 @@ class ShopliftingNet:
 
         x = MaxPooling3D(pool_size=(2, 3, 3))(x)
         return x
-
 
     def get_Flow_gate_fast_path(self, fast_input):
         inputs = fast_input
@@ -156,8 +151,7 @@ class ShopliftingNet:
 
         # 3
 
-        return rgb,  connection_dic
-
+        return rgb, connection_dic
 
     def get_Flow_gate_slow_path(self, slow_input, connection_dic):
         # inputs = Input(shape=(64, 224, 224, 5))
@@ -263,10 +257,7 @@ class ShopliftingNet:
             128, kernel_size=(3, 1, 1), strides=(1, 1, 1), kernel_initializer='he_normal', activation='relu',
             padding='same')(x)
 
-
-
         return x
-
 
     def gate_flow_slow_fast_network_builder(self):
         clip_shape = [64, 224, 224, 3]
@@ -280,13 +271,13 @@ class ShopliftingNet:
         fast_input = clip_input
 
         # build fast path networks
-        fast_rgb,  connection = self.get_Flow_gate_fast_path(fast_input)
+        fast_rgb, connection = self.get_Flow_gate_fast_path(fast_input)
 
         # get slow network
 
         slow_rgb = self.get_Flow_gate_slow_path(slow_input, connection)
 
-       # print(f"[1][+][+] here\nslow_rgb {slow_rgb.shape}\nfast_rgb {fast_rgb.shape}\n")
+        # print(f"[1][+][+] here\nslow_rgb {slow_rgb.shape}\nfast_rgb {fast_rgb.shape}\n")
         # temporal Pooling
         #fast_res_temporal_Pooling = self.temporalPooling(fast_opt, fast_rgb)
         # print(f"res-temporalPooling {fast_res_temporal_Pooling.shape}")
@@ -314,7 +305,6 @@ class ShopliftingNet:
         model = Model(inputs=clip_input, outputs=pred)
         return model
 
-
     # build model
     def get_gate_flow_slow_fast_model(self):
         """
@@ -330,6 +320,68 @@ class ShopliftingNet:
         model.load_weights(self.weights_path)
         return model
 
+
 #
 # S_net = ShopliftingNet()
 # #S_net.get_gate_flow_slow_fast_model()
+
+S_net = ShopliftingNet(
+    'weight_steals/GATE_FLOW_SLOW_FAST_RGB_ONLY/weights_at_epoch_3___65.h5')
+model = S_net.load_model_and_weight()
+# model.summary()
+video_path = '../DB_Sample/input/61.mp4'
+cap = cv2.VideoCapture(video_path)
+W = 224
+H = 224
+frame_set = []
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    frame = cv2.resize(frame, (W, H))
+    frame_set.append(frame)
+    if len(frame_set) == 64:
+        break
+
+
+cap.release()
+# Check the number of frames and pad if necessary
+if len(frame_set) < 64:
+    last_frame = frame_set[-1]
+    while len(frame_set) < 64:
+        frame_set.append(last_frame)
+
+# Convert frame_set to numpy array and normalize
+frame_set = np.array(frame_set)
+frame_set = frame_set / 255.0
+frame_set = np.expand_dims(frame_set, axis=0)
+
+# Ensure the shape is correct
+print(frame_set.shape)  # Should print (1, 64, 224, 224, 3)
+
+# Predict using the model
+pred = model.predict(frame_set)
+print(pred)
+result = 0
+if pred[0][1] > 0.5:
+    result = 1
+print("shoplifting" if result == 1 else "normal")
+
+# # Create a list to store the frames
+frames = []
+
+for frame in frame_set[0]:
+    # Draw the prediction result on the frame
+    if result == 1:
+        cv2.putText(frame, 'Shoplifting', (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+    elif result == 0:
+        cv2.putText(frame, 'Normal', (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+
+    # Convert frame to uint8
+    frame = (frame * 255).astype(np.uint8)
+    frames.append(frame)
+
+# Save the frames as a GIF
+output_path = '../DB_Sample/output/result.gif'
+imageio.mimsave(output_path, frames, fps=20)
+#

@@ -6,7 +6,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 
 class Email_Alert:
-    def __init__(self,users_Email_list=["amitos684@gmail.com","barloupo@gmail.com","eyal@gat.org.il"]):
+    def __init__(self,users_Email_list=["maheedhar1998@gmail.com","barloupo@gmail.com","eyal@gat.org.il"]):
         self.user_email_address1 =users_Email_list[0]
         self.user_email_address2 =users_Email_list[1]
         self.user_email_address3 = users_Email_list[2]
